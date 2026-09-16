@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Toasty Peeps</title>
+  <link rel="stylesheet" href="./peeps.css">
+  <script type="module" src="./peeps.js"></script>
+</head>
+<body>
+<header><strong>TOASTY PEEPS</strong><span>Find your peeps.</span></header>
+<main>
+  <section class="hero"><small>PEOPLE WORTH TALKING TO</small><h1>Who do you want to talk to?</h1><p>Tell Toasty who you need and what you need them for. We rank demonstrated relevance, screen Dubs before interrupting humans, then help you start the right Jam.</p></section>
+  <section class="card search">
+    <label><span>Who do you need?</span><textarea id="brief" placeholder="Someone who understands AI agents and enterprise sales and has actually built or sold something."></textarea></label>
+    <label><span>What for?</span><select id="intent"><option>Podcast guest</option><option>Expert insight</option><option>Collaborate</option><option>Find a cofounder</option><option>Advisor</option><option>Mentor</option><option>Speaker / panelist</option><option>Hire / project</option><option>Research interview</option><option>Investment / fundraising</option><option>Introduction / networking</option><option>Something else</option></select></label>
+    <label><span>Anything else?</span><input id="context" placeholder="Asia preferred, operator not commentator..."></label>
+    <button id="find">Find my peeps</button>
+  </section>
+  <section id="resultsWrap" hidden>
+    <div class="stats"><div><small>Peeps considered</small><b id="count">0</b></div><div><small>Strong matches</small><b id="strong">0</b></div><div><small>Humans interrupted</small><b>0</b></div><div><small>Dough budget</small><b>$20 USDC</b></div></div>
+    <div id="results" class="grid"></div>
+  </section>
+  <section class="legend"><b>Peeps</b> people · <b>Dubs</b> digital doubles · <b>Jams</b> engagements · <b>Dough</b> money · <b>Breadcrumbs</b> evidence</section>
+</main>
+<dialog id="dub"><button id="close">×</button><div id="dubBody"></div></dialog>
+</body>
+</html>
