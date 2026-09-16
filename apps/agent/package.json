@@ -1,0 +1,17 @@
+{
+  "name": "@toasty-peeps/agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "paid-dub-test": "tsx src/paid-dub-test.ts"
+  },
+  "dependencies": {
+    "@solana/kit": "5.5.1",
+    "@x402/svm": "^2.23.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.23.13",
+    "typescript": "^5.9.3"
+  }
+}
