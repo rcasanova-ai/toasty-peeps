@@ -1,0 +1,35 @@
+import { createServer } from 'node:http';
+import { randomBytes, timingSafeEqual } from 'node:crypto';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { dirname, resolve } from 'node:path';
+
+const PORT=Number(process.env.PEEPS_JAM_PORT||8788);
+const DB=resolve(process.env.PEEPS_JAM_DB||'./data/jams.json');
+type Capture='private'|'transcript'|'record';
+type Jam={id:string;roomId:string;roomSecret:string;capture:Capture;brand:string;participants:{id:string;name:string;inviteHash:string}[];events:any[];createdAt:string};
+let jams:Record<string,Jam>={};
+const token=()=>randomBytes(32).toString('base64url');
+const hex=(n=24)=>randomBytes(n).toString('hex');
+const hash=async(v:string)=>{const {createHash}=await import('node:crypto');return createHash('sha256').update(v).digest('hex');};
+async function load(){try{jams=JSON.parse(await readFile(DB,'utf8'));}catch{jams={};}}
+async function save(){await mkdir(dirname(DB),{recursive:true});await writeFile(DB,JSON.stringify(jams,null,2));}
+function json(res:any,status:number,body:any){res.writeHead(status,{'content-type':'application/json','cache-control':'no-store','access-control-allow-origin':process.env.PEEPS_WEB_ORIGIN||'https://toasty.media','vary':'origin'});res.end(JSON.stringify(body));}
+async function body(req:any){let raw='';for await(const chunk of req)raw+=chunk;if(raw.length>64_000)throw new Error('too-large');return raw?JSON.parse(raw):{};}
+async function participantByInvite(jam:Jam,invite:string){const h=await hash(invite);return jam.participants.find(p=>{const a=Buffer.from(p.inviteHash,'hex'),b=Buffer.from(h,'hex');return a.length===b.length&&timingSafeEqual(a,b);});}
+
+await load();
+createServer(async(req,res)=>{try{
+ if(req.method==='OPTIONS'){res.writeHead(204,{'access-control-allow-origin':process.env.PEEPS_WEB_ORIGIN||'https://toasty.media','access-control-allow-methods':'GET,POST,OPTIONS','access-control-allow-headers':'content-type'});return res.end();}
+ const url=new URL(req.url||'/',`http://${req.headers.host||'localhost'}`);
+ if(req.method==='POST'&&url.pathname==='/api/jams'){
+  const input=await body(req);const id=String(input.id||`JAM-${Date.now().toString(36).toUpperCase()}`);if(jams[id])return json(res,409,{error:'jam-exists'});
+  const participants=(input.participants||[]).slice(0,12);if(participants.length<2)return json(res,400,{error:'two-participants-required'});
+  const issued=[] as any[];const records=[] as any[];for(const p of participants){const invite=token();issued.push({id:String(p.id),name:String(p.name||'Participant'),invite});records.push({id:String(p.id),name:String(p.name||'Participant'),inviteHash:await hash(invite)});}
+  jams[id]={id,roomId:`tm${hex(14)}`.slice(0,30),roomSecret:hex(24),capture:(['private','transcript','record'].includes(input.capture)?input.capture:'private'),brand:String(input.brand||'peeps'),participants:records,events:[{type:'jam.created',at:new Date().toISOString()}],createdAt:new Date().toISOString()};await save();return json(res,201,{jamId:id,invites:issued});
+ }
+ const access=url.pathname.match(/^\/api\/jams\/([^/]+)\/access$/);if(req.method==='POST'&&access){const jam=jams[decodeURIComponent(access[1])];if(!jam)return json(res,404,{error:'jam-not-found'});const input=await body(req);const p=await participantByInvite(jam,String(input.invite||''));if(!p)return json(res,403,{error:'invite-invalid-or-expired'});jam.events.push({type:'jam.room.opened',participantId:p.id,at:new Date().toISOString()});await save();return json(res,200,{jamId:jam.id,participant:{id:p.id,name:p.name},media:{roomId:jam.roomId,roomSecret:jam.roomSecret},capture:jam.capture,brand:jam.brand});}
+ const events=url.pathname.match(/^\/api\/jams\/([^/]+)\/events$/);if(req.method==='POST'&&events){const jam=jams[decodeURIComponent(events[1])];if(!jam)return json(res,404,{error:'jam-not-found'});const input=await body(req);const p=await participantByInvite(jam,String(input.invite||''));if(!p)return json(res,403,{error:'invite-invalid-or-expired'});const allowed=['participant.joined','participant.left','capture.consent','jam.started','jam.ended','dispute.window.opened'];if(!allowed.includes(input.type))return json(res,400,{error:'event-not-allowed'});jam.events.push({type:input.type,participantId:p.id,at:new Date().toISOString(),detail:input.detail||{}});await save();return json(res,201,{ok:true});}
+ const record=url.pathname.match(/^\/api\/jams\/([^/]+)\/record$/);if(req.method==='POST'&&record){const jam=jams[decodeURIComponent(record[1])];if(!jam)return json(res,404,{error:'jam-not-found'});const input=await body(req);const p=await participantByInvite(jam,String(input.invite||''));if(!p)return json(res,403,{error:'invite-invalid-or-expired'});return json(res,200,{jamId:jam.id,capture:jam.capture,brand:jam.brand,events:jam.events.map(e=>({type:e.type,at:e.at,participantId:e.participantId,detail:e.detail}))});}
+ return json(res,404,{error:'not-found'});
+ }catch(error:any){console.error(error);return json(res,500,{error:'internal-error'});}
+}).listen(PORT,()=>console.log(`Peeps Jam service listening on :${PORT}`));
