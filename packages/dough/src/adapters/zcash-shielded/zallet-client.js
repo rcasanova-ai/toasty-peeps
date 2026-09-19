@@ -3,11 +3,14 @@
 // spending keys, viewing keys, or raw private compliance data to the browser.
 
 export class ZalletRpcClient {
-  constructor({rpcUrl='http://127.0.0.1:28232', rpcUser, rpcPassword, fetchImpl=fetch}={}) {
+  constructor({rpcUrl='http://127.0.0.1:28232', rpcUser, rpcPassword, fetchImpl=fetch, sourceAccount, sourceAddress, fundSource='orchard'}={}) {
     this.rpcUrl = rpcUrl;
     this.rpcUser = rpcUser;
     this.rpcPassword = rpcPassword;
     this.fetchImpl = fetchImpl;
+    this.sourceAccount = sourceAccount;
+    this.sourceAddress = sourceAddress;
+    this.fundSource = fundSource;
     this.id = 0;
   }
 
@@ -26,14 +29,43 @@ export class ZalletRpcClient {
     return body.result;
   }
 
-  async sendShielded({recipient, amount, memo, privacyPolicy='FullPrivacy'}={}) {
+  async validateRecipient(recipient) {
+    if (!recipient) throw new Error('recipient required');
+    const result = await this.rpc('z_listunifiedreceivers', [recipient]);
+    const receiverTypes = Object.keys(result || {});
+    if (!receiverTypes.some(type => type === 'orchard' || type === 'sapling')) {
+      throw new Error('Shielded Zcash recipient must include an Orchard or Sapling receiver');
+    }
+    return {valid:true, receiverTypes};
+  }
+
+  async sendShielded({recipient, amount, memo, privacyPolicy='FullPrivacy', sourceAccount=this.sourceAccount, sourceAddress=this.sourceAddress, fundSource=this.fundSource}={}) {
     if (!recipient) throw new Error('recipient required');
     if (!Number.isFinite(amount) || amount <= 0) throw new Error('positive ZEC amount required');
-    // z_sendmany defaults to FullPrivacy, but pass it explicitly so Peeps cannot
-    // silently weaken privacy if wallet defaults change.
     const recipients = [{address:recipient, amount, ...(memo ? {memo:Buffer.from(memo,'utf8').toString('hex')} : {})}];
+
+    if (sourceAccount) {
+      try {
+        const txid = await this.rpc('z_sendfromaccount', [sourceAccount, fundSource, recipients, 1, privacyPolicy]);
+        return {txid};
+      } catch (error) {
+        if (!sourceAddress || !/Method not found/.test(error.message)) throw error;
+      }
+    }
+
+    if (sourceAddress) {
+      const opid = await this.rpc('z_sendmany', [sourceAddress, recipients, 1, null, privacyPolicy]);
+      return this.waitForOperation(opid);
+    }
+
+    // Legacy compatibility path for migrated zcashd wallets.
     const opid = await this.rpc('z_sendmany', ['ANY_TADDR', recipients, 1, null, privacyPolicy]);
     return this.waitForOperation(opid);
+  }
+
+  async getTransaction(txid) {
+    if (!txid) throw new Error('txid required');
+    return this.rpc('z_viewtransaction', [txid]);
   }
 
   async waitForOperation(opid,{timeoutMs=120000,pollMs=1500}={}) {
