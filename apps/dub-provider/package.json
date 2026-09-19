@@ -1,0 +1,20 @@
+{
+  "name": "@toasty-peeps/dub-provider",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/server.ts"
+  },
+  "dependencies": {
+    "@x402/core": "^2.23.0",
+    "@x402/express": "^2.23.0",
+    "@x402/svm": "^2.23.0",
+    "express": "^5.1.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.3",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.3"
+  }
+}
