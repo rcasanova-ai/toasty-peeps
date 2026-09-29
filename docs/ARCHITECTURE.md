@@ -20,6 +20,18 @@ Toasty Peeps is an agent-native people marketplace built around demonstrated rel
 6. Settlement occurs in USDC on Solana where payment is required.
 7. The interaction leaves Breadcrumbs that improve future matching and the Dub's evidence boundary.
 
+## Matching decision layer
+
+Peeps uses bounded decision models where the output must drive software directly. Jev is the first matching decision adapter.
+
+- Jev receives the user's requested need/outcome plus candidate evidence and returns a probability for each candidate.
+- Jev is server-side only; its API key must never be exposed to the web client.
+- Missing credentials or Jev API failure fall back to the local deterministic matcher, so matching remains available before credits are funded.
+- Generative/research models remain separate. Jev is for scoring, classification, routing, and other typed decisions, not prose generation.
+- The same adapter pattern can later score Breadcrumb relevance, Dub escalation, outreach path, and bounty routing.
+
+See `docs/JEV.md` for configuration.
+
 ## Dub authority ladder
 
 1. **Supported / auto-answer** — directly supported by approved evidence and within delegated authority.
@@ -56,7 +68,7 @@ Do **not** copy Seeker identity/mobile-specific assumptions into Peeps. Wallet p
 
 - `apps/web` — Peeps UX and demo.
 - `apps/api` — matching, Dubs, Jams, and settlement endpoints.
-- `packages/matching` — intent-aware demonstrated-relevance ranking.
+- `packages/matching` — intent-aware demonstrated-relevance ranking and bounded decision adapters.
 - `packages/dubs` — evidence boundary and delegated-response logic.
 - `packages/jams` — engagement lifecycle.
 - `packages/dough` — budgets, x402, Solana/USDC payment policy and settlement adapters.
