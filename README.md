@@ -1,5 +1,13 @@
 # Toasty Peeps
 
+> **Colosseum judges: current implementation and demo**
+>
+> This repository contains the original Toasty Peeps prototype and architecture. **The current Peeps implementation is maintained in the public [toasty-media repository](https://github.com/rcasanova-ai/toasty-media/tree/main/peeps)**, with supporting integration code elsewhere in that repository. Please review that repository for the latest product code.
+>
+> **Live product:** https://toasty.media/peeps/  
+> **Recorded-demo walkthrough:** https://toasty.media/peeps/demo/?record=1  
+> The walkthrough uses simulated data and settlement; it is not evidence of live on-chain payments.
+
 **Find your peeps. Ask their Dubs. Start a Jam.**
 
 Toasty Peeps is an agent-native people marketplace that matches people by demonstrated relevance to a specific need rather than credentials alone.
