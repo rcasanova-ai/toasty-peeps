@@ -19,3 +19,17 @@ Rate limit challenges; authenticate all endpoints; bind challenge to authenticat
 
 ## Next implementation milestone
 Add server challenge and verification endpoints, persistence and replay tests, feature flag, minimal participant challenge UI, then connect a vetted active-liveness vendor/model and red-team with real-time face swap, synthetic speech, replay and genuine users. No production claims before independent evaluation.
+
+## Implementation status (first functional version)
+
+Production behaviour lives in `rcasanova-ai/toasty-media` (`scripts/human-presence/`, `js/human-presence-ui.js`, `docs/human-presence-verification.md`): server issued challenges, expiry, replay protection, signed receipts, host controls, consent, audit and retention, all behind `HUMAN_PRESENCE_ENABLED` (default off). No liveness verifier ships, so every result is `inconclusive`.
+
+This repo carries the Peeps side of the contract in `packages/presence`:
+
+- `createReceiptRef` accepts only a small receipt reference and downgrades any pass that lacks the server's verified flag and a real assurance level.
+- `presenceStatus` is the only way a participant becomes "verified": a fresh, server verified, assured pass. References expire; an expired one is "not current".
+- `requestJamPresence`, `recordJamPresenceResult`, `declineJamPresence`: Jam participants are checked before or during a Jam. `canParticipateInJam` is always true, so a check never gates or removes anyone.
+- `createPresenceBreadcrumb` and `dubPresenceSummary`: a Breadcrumb holds a receipt reference. The newest reference wins and an old receipt never counts as current liveness proof. `breadcrumbWeight` returns 0 for presence Breadcrumbs, so they cannot affect matching or reputation.
+- `verifyReceiptWithStudio` asks Studio to check a receipt token (signature, revocation, scope); Peeps never holds signing keys.
+
+Tests: `node --test test/presence.test.js`.

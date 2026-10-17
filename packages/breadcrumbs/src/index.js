@@ -14,4 +14,4 @@ export function createConfidentialJamBreadcrumb({peepId,jamId,topic='advisory en
   });
 }
 
-export function breadcrumbWeight(b){let weight=1;if(b.approvedByHuman)weight+=2;if(b.paymentSignature)weight+=1;if((b.evidence||[]).length)weight+=Math.min(2,b.evidence.length);return weight;}
+export function breadcrumbWeight(b){if(b.type==='presence.check')return 0;let weight=1;if(b.approvedByHuman)weight+=2;if(b.paymentSignature)weight+=1;if((b.evidence||[]).length)weight+=Math.min(2,b.evidence.length);return weight;}
